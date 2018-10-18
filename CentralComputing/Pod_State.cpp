@@ -5,7 +5,7 @@ using namespace Utils;
 //Pod_State::Pod_State(Brake * brake, Motor * motor, Sensor * sensor)
 Pod_State::Pod_State()
   : StateMachine(ST_MAX_STATES),
-  motor()
+  motor(), podBrake()
     
 {
   transition_map[NetworkManager::TRANS_SAFE_MODE] = &Pod_State::move_safe_mode;  
@@ -159,14 +159,20 @@ void Pod_State::ST_Launch_Ready() {
 
 void Pod_State::ST_Flight_Accel() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
+  podBrake.disable_brakes();
+  motor.enable_motors();
 }
 
 void Pod_State::ST_Flight_Coast() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
+  podBrake.disable_brakes();
+  motor.disable_motors();
 }
 
 void Pod_State::ST_Flight_Brake() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
+  podBrake.enable_brakes();
+  motor.disable_motors();
 }
 
 /////////////////////////////

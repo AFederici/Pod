@@ -13,12 +13,15 @@ Brake::Brake(){
 }
 
 void Brake::enable_brakes() {
+    enabled = true;
   }
 
 void Brake::disable_brakes() {
+    enabled = false;
   }
 
 void Brake::set_enable(bool enable){
+    enabled = enable;
 }
 
 bool Brake::is_enabled(){
