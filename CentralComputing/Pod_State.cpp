@@ -250,7 +250,7 @@ void Pod_State::steady_flight_coast(std::shared_ptr<NetworkManager::Network_Comm
 	
 	if (shouldBrake(vel, pos)) {
 		auto newCommand = std::make_shared<NetworkManager::Network_Command>();
-		newCommand->id = NetworkManager::Network_Command_ID::TRANS_FLIGHT_COAST;
+		newCommand->id = NetworkManager::Network_Command_ID::TRANS_FLIGHT_BRAKE;
 		newCommand->value = 0;
 		NetworkManager::command_queue.enqueue(newCommand);
 	}
