@@ -39,7 +39,13 @@ class Simulator {
     void disconnect();
 
 
-
+    bool sim_motor_enable();
+    bool sim_motor_disable();
+    void sim_motor_set_throttle(int16_t throtNeeded);
+    bool sim_brake_enable();
+    bool sim_brake_disable();
+    void sim_set_pressure(int16_t pressNeeded);
+    void sim_get_position();
     Pod_State::E_States current_state; //current state of the pod as read by the network controller
 
     atomic<bool> active_connection;
@@ -47,6 +53,11 @@ class Simulator {
     thread read_thread;
 
     int socketfd;
+
+    bool motorON;
+    bool brakeON;
+    int16_t currPress; //which is what is currently being used by the set_throttle function in Motor.cpp
+    int16_t currThrot; // which is what is currently being used by the set_pressure function somewhere else
 
     //TODO:
     //Add brake status, motor status

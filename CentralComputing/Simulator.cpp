@@ -1,13 +1,45 @@
 #include "Simulator.hpp"
+#include "Motor.cpp"
 
 using namespace Utils;
+//assuming Motor is in Test/Sim Mode
 
 Simulator SimulatorManager::sim;
 
 Simulator::Simulator() {
   //TODO set up internal variables
 }
+bool Simulator::sim_motor_enable(){
+    motorON = 1;// currently a dummy
+    return motorON;
+}
+bool Simulator::sim_motor_disable(){
+    motorON = 0;// currently a dummy
+    return motorON;
+}
+void Simulator::sim_motor_set_throttle(int16_t throtNeeded){
+    //int16_t currThrot == throtNeeded;
+    //Motor::set_throttle(currThrot); //sets the sim value to wanted value
+}
+bool Simulator::sim_brake_enable(){
+    brakeON = 1; //turns brake on, currently a dummy
+    return brakeON;
+}
 
+bool Simulator::sim_brake_disable(){
+    brakeON = 0; //turns brake off, currently a dummy
+    return brakeON;
+}
+void Simulator::sim_set_pressure( int16_t pressNeeded){
+    //currPress == pressNeeded;
+   // Motor::set_pressure(currPress); //sets the sim value to wanted value, but can't cuz set pressure doesn't exist yet
+}
+void Simulator::sim_get_position(){
+ //currently empty but 
+ // but in the future : TODO it should actually refer to current inputs from the accelerometer and also the encoders
+ //print out each value
+  //and also a combined/synthesized output that verifies/gives a more accurate output for current position.
+}
 bool Simulator::sim_connect(const char * hostname, const char * port) {
   //TODO connect to a Pod instance
   struct addrinfo hints, *servinfo;
