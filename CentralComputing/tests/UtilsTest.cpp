@@ -14,14 +14,14 @@ TEST(UtilsTest, busyWaitTestShort) {
 
 TEST(UtilsTest, busyWaitTestMed) {
 	double start = std::clock();
-	int time = 200000;
+	int time = 100000;
 	Utils::busyWait(time);
 	EXPECT_GE(std::clock(), start + time);
 }
 
 TEST(UtilsTest, busyWaitTestLong) {
 	double start = std::clock();
-	int time = 20000000;
+	int time = 10000000;
 	Utils::busyWait(time);
 	EXPECT_GE(std::clock(), start + time);
 }

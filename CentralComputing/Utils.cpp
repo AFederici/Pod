@@ -2,6 +2,9 @@
 #include <chrono>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
+#include <time.h>
+#include <iostream>
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -36,10 +39,25 @@ void Utils::print(LogLevel level, const char * format, ...){
       }
 }
 
-void Utils::busyWait(int microseconds) {
-	double target = std::clock() + microseconds;
-	while (std::clock() < target) {
-		;;;
+void Utils::busyWait(long microseconds) {
+	struct timespec currTime;
+	struct timespec targetTime;
+	clockid_t threadClockId;
+
+	pthread_getcpuclockid(pthread_self(), &threadClockId);
+	clock_gettime(threadClockId, &currTime);
+	time_t seconds = (currTime.tv_nsec + 1000 * microseconds) / 1000000000 + currTime.tv_sec;
+	long nano = (currTime.tv_nsec + 1000 * microseconds) % 1000000000;
+	targetTime.tv_sec = seconds;
+	targetTime.tv_nsec = nano;
+	std::cout << "Initial times for " << microseconds << std::endl;
+	std::cout << currTime.tv_sec << std::endl;
+	std::cout << currTime.tv_nsec << std::endl;
+	std::cout << "Target times for " << microseconds << std::endl;
+	std::cout << targetTime.tv_sec << std::endl;
+	std::cout << targetTime.tv_nsec << std::endl;
+	while ((targetTime.tv_sec >= currTime.tv_sec || targetTime.tv_nsec >= currTime.tv_nsec)) {
+		clock_gettime(threadClockId, &currTime);
 	}
 	return;
 }
