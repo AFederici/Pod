@@ -5,7 +5,7 @@ using namespace Utils;
 //Pod_State::Pod_State(Brake * brake, Motor * motor, Sensor * sensor)
 Pod_State::Pod_State()
   : StateMachine(ST_MAX_STATES),
-  motor()
+  motor(), podBrake()
     
 {
   transition_map[NetworkManager::TRANS_SAFE_MODE] = &Pod_State::move_safe_mode;  
@@ -161,27 +161,27 @@ void Pod_State::ST_Flight_Accel() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
   
   podBrake.disable_brakes();
-  std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
+  //std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
   
   motor.enable_motors();
-  std::cout << "Motors are " + motor.is_enabled() << std::endl;
+  //std::cout << "Motors are " + motor.is_enabled() << std::endl;
 }
 
 void Pod_State::ST_Flight_Coast() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
   
   podBrake.disable_brakes();
-  std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
+  //std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
   
   motor.disable_motors();
-  std::cout << "Motors are " + motor.is_enabled() << std::endl;
+  //std::cout << "Motors are " + motor.is_enabled() << std::endl;
 }
 
 void Pod_State::ST_Flight_Brake() {
   print(LogLevel::LOG_EDEBUG, "STATE : %s\n", get_current_state_string().c_str());
   
   podBrake.enable_brakes();
-  std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
+  //std::cout << "Brakes are " + podBrake.is_enabled() << std::endl;
 
 }
 
