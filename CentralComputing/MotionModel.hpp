@@ -25,13 +25,13 @@ struct StateSpace {
 
 class MotionModel : public SourceManagerBase<(long long) (0.005 * 1E6), StateSpace, false> {
   public:
-    std::shared_ptr<StateSpace> get_state();
 
   private:
     // Source Manager methods
     bool initialize_source();
     void stop_source();
     std::shared_ptr<StateSpace> refresh();
+    std::shared_ptr<StateSpace> refresh_sim();
 
     std::string name(){
       return "mm";
