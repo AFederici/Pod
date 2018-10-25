@@ -50,12 +50,6 @@ void Utils::busyWait(long microseconds) {
 	long nano = (currTime.tv_nsec + 1000 * microseconds) % 1000000000;
 	targetTime.tv_sec = seconds;
 	targetTime.tv_nsec = nano;
-	std::cout << "Initial times for " << microseconds << std::endl;
-	std::cout << currTime.tv_sec << std::endl;
-	std::cout << currTime.tv_nsec << std::endl;
-	std::cout << "Target times for " << microseconds << std::endl;
-	std::cout << targetTime.tv_sec << std::endl;
-	std::cout << targetTime.tv_nsec << std::endl;
 	while ((targetTime.tv_sec >= currTime.tv_sec || targetTime.tv_nsec >= currTime.tv_nsec)) {
 		clock_gettime(threadClockId, &currTime);
 	}
