@@ -1,0 +1,2 @@
+maxAccel=7
+maxDecel=-7
