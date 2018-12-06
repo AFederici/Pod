@@ -295,8 +295,10 @@ void Pod_State::steady_flight_brake(std::shared_ptr<NetworkManager::Network_Comm
 }
 
 bool Pod_State::shouldBrake(double vel, double pos) {
+	double stoppingDistance = -0.5*vel*vel/IDEAL_DECCEL;
+	double remainingDistance = LENGTH_OF_TRACK - BUFFER_LENGTH - pos;
 
-	if (-.5*vel*vel/IDEAL_DECCEL+vel*vel/IDEAL_DECCEL >= LENGTH_OF_TRACK - BUFFER_LENGTH - pos) {
+	if (stoppingDistance >= remainingDistance) {
 		return true;
 	} else {
 		return false;
