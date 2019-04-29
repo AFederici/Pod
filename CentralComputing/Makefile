@@ -9,18 +9,24 @@ OBJ := $(patsubst %.cpp, %.o, $(SRC))
 GTEST_DIR := googletest/googletest
 LIB_DIR   := .lib
 
+
 # Set up compiler
-CXX_NORM	:= g++ -fpermissive
+CXX_NORM	:= g++ -fpermissive 
 CXX_BBB 	:= arm-linux-gnueabihf-g++
 WARNINGS 	:= -Wall -Wextra -pedantic -Wdouble-promotion -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wno-unused
 
-INCLUDE_DIRS	:= -IStateMachineCompact -I${GTEST_DIR}/include -I.
+
+INCLUDE_DIRS	:= -IStateMachineCompact -I${GTEST_DIR}/include -I. -Iscenarios
 CFLAGS_RELEASE 	:= -O2 $(WARNINGS) -g -std=c++11 -c -MMD -MP $(INCLUDE_DIRS) -D_GNU_SOURCE -pthread -DNDEBUG
 CFLAGS_DEBUG   	:= -O0 $(WARNINGS) -g -std=c++11 -c -MMD -MP $(INCLUDE_DIRS) -D_GNU_SOURCE -pthread -DDEBUG 
-CFLAGS_SIM 	:= -O0 $(WARNINGS) -g -std=c++11 -c -MMD -MP $(INCLUDE_DIRS) -D_GNU_SOURCE -pthread -DDEBUG -DSIM
-
+CFLAGS_SIM 	:= -O0 $(WARNINGS) -g -std=c++11 -c -MMD -MP $(INCLUDE_DIRS) -D_GNU_SOURCE -pthread -DDEBUG -DSIM 
+CFLAGS_BBB      := -DBBB
+CFLAGS_NORM     := 
 #Set up linker
-LDFLAGS := -pthread -lm -static-libgcc -static-libstdc++ 
+LDFLAGS := -pthread -lm  #-static-libgcc -static-libstdc++ 
+# The 'static' flags might be necessary if the cross compiler and BBB have different versions of the libgcc and libstdc++ libraries. 
+# This is why these flags were intially included, but now the BBBs are running newer software such that these are no longer needed.
+# However, the 'static' flags will likely not work with any of the Sanitizers
 LD_TEST_NORM := ${LIB_DIR}/libgtest.a
 LD_TEST_ARM  := ${LIB_DIR}/libgtest-arm.a
 LD_NORM := $(CXX_NORM)
@@ -38,7 +44,7 @@ ARM_COMPILER_EXISTS := $(shell command -v $(CXX_BBB) 2> /dev/null)
 
 
 .PHONY: all
-all : msg mkdir_obj ${LIB_DIR}/gtest-all.o ${LIB_DIR}/gtest-all-arm.o msg_d $(POD_D) msg_s $(POD_T)
+all : msg mkdir_obj ${LIB_DIR}/gtest-all.o ${LIB_DIR}/gtest-all-arm.o msg_d $(POD_D)-tsan msg_s $(POD_T)-tsan
 	$(info  =   ___ _   _  ___ ___ ___  ___ ___  )
 	$(info	=  / __| | | |/ __/ __/ _ \/ __/ __| )
 	${info	=  \__ \ |_| | (_| (_|  __/\__ \__ \ }
@@ -71,21 +77,26 @@ msg :
 	$(info =             ___/  /___  /__/   /  / /__/   /  / /  /                    )
 	$(info =          __ __/______/ /______/__/ /______/__/ /__/                     )  
 
+.PHONY: lint
+lint:
+	python cpplint/cpplint/cpplint.py --filter=-legal/copyright,-build/include,-whitespace/end_of_line,-readability/todo --linelength=120 --quiet --extensions=cpp,h,hpp --root=. *.cpp *.hpp *.h
+
 .PHONY: mkdir_obj
 mkdir_obj:
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p $(LIB_DIR)
 	@mkdir -p $(OBJ_DIR)/StateMachineCompact
 	@mkdir -p $(OBJ_DIR)/tests
+	@mkdir -p $(OBJ_DIR)/scenarios
 
 # Compile libgtest
 ${LIB_DIR}/gtest-all.o : ${GTEST_DIR}/src/gtest-all.cc 
-	g++ -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -o ${LIB_DIR}/gtest-all.o
+	$(CXX_NORM) -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -o ${LIB_DIR}/gtest-all.o
 	ar -rv ${LIB_DIR}/libgtest.a ${LIB_DIR}/gtest-all.o
 
 ifdef ARM_COMPILER_EXISTS
 ${LIB_DIR}/gtest-all-arm.o : ${GTEST_DIR}/src/gtest-all.cc 
-	arm-linux-gnueabihf-g++ -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -o ${LIB_DIR}/gtest-all-arm.o
+	$(CXX_BBB) -isystem ${GTEST_DIR}/include -I${GTEST_DIR} -pthread -c ${GTEST_DIR}/src/gtest-all.cc -o ${LIB_DIR}/gtest-all-arm.o 
 	ar -rv ${LIB_DIR}/libgtest-arm.a ${LIB_DIR}/gtest-all-arm.o
 endif
 
@@ -122,8 +133,16 @@ msg_p :
 #####
 # build
 #####
+$(POD)-tsan : LD_NORM := $(LD_NORM) -fsanitize=thread
+$(POD)-tsan : CXX_NORM := $(CXX_NORM) -fsanitize=thread -fPIE -pie
+$(POD)-tsan : $(POD)  #JUMP TO POD to continue compiling
+
+$(POD)-asan : LD_NORM := $(LD_NORM) -fsanitize=address
+$(POD)-asan : CXX_NORM := $(CXX_NORM) -fsanitize=address 
+$(POD)-asan : $(POD)  #JUMP TO POD to continue compiling
+
 $(POD) : CXX 	= $(CXX_NORM)
-$(POD) : CFLAGS = $(CFLAGS_RELEASE)
+$(POD) : CFLAGS = $(CFLAGS_RELEASE) $(CFLAGS_NORM)
 $(POD) : LD  	= $(LD_NORM)
 $(POD) : mkdir_obj build-$(POD)
 build-$(POD) : $(OBJ:%.o=$(OBJ_DIR)/%-build.o)
@@ -135,8 +154,16 @@ $(OBJ_DIR)/%-build.o : %.cpp
 #####
 # build-debug
 #####
+$(POD_D)-tsan : LD_NORM := $(LD_NORM) -fsanitize=thread
+$(POD_D)-tsan : CXX_NORM := $(CXX_NORM) -fsanitize=thread -fPIE -pie
+$(POD_D)-tsan : $(POD_D)  #JUMP TO POD to continue compiling
+
+$(POD_D)-asan : LD_NORM := $(LD_NORM) -fsanitize=address
+$(POD_D)-asan : CXX_NORM := $(CXX_NORM) -fsanitize=address 
+$(POD_D)-asan : $(POD_D)  #JUMP TO POD to continue compiling
+
 $(POD_D) : CXX		= $(CXX_NORM)
-$(POD_D) : CFLAGS  	= $(CFLAGS_DEBUG)
+$(POD_D) : CFLAGS  	= $(CFLAGS_DEBUG) $(CFLAGS_NORM)
 $(POD_D) : LD  		= $(LD_NORM)
 $(POD_D) : mkdir_obj build-$(POD_D)
 build-$(POD_D) : $(OBJ:%.o=$(OBJ_DIR)/%-build-debug.o)
@@ -148,8 +175,16 @@ $(OBJ_DIR)/%-build-debug.o : %.cpp
 #####
 # build-test
 #####
+$(POD_T)-tsan : LD_NORM := $(LD_NORM) -fsanitize=thread
+$(POD_T)-tsan : CXX_NORM := $(CXX_NORM) -fsanitize=thread -fPIE -pie
+$(POD_T)-tsan : $(POD_T)  #JUMP TO POD to continue compiling
+
+$(POD_T)-asan : LD_NORM := $(LD_NORM) -fsanitize=address
+$(POD_T)-asan : CXX_NORM := $(CXX_NORM) -fsanitize=address 
+$(POD_T)-asan : $(POD_T)  #JUMP TO POD to continue compiling
+
 $(POD_T) : CXX 		= $(CXX_NORM)
-$(POD_T) : CFLAGS  	= $(CFLAGS_SIM)
+$(POD_T) : CFLAGS  	= $(CFLAGS_SIM) $(CFLAGS_NORM)
 $(POD_T) : LD  		= $(LD_NORM)
 $(POD_T) : mkdir_obj build-$(POD_T)
 
@@ -163,7 +198,7 @@ $(OBJ_DIR)/%-build-sim.o : %.cpp
 # cross
 #####
 $(POD_CROSS) : CXX 	= $(CXX_BBB)
-$(POD_CROSS) : CFLAGS  	= $(CFLAGS_RELEASE)
+$(POD_CROSS) : CFLAGS  	= $(CFLAGS_RELEASE) $(CFLAGS_BBB)
 $(POD_CROSS) : LD  	= $(LD_BBB)
 $(POD_CROSS) : mkdir_obj build-$(POD_CROSS)
 build-$(POD_CROSS) : $(OBJ:%.o=$(OBJ_DIR)/%-cross.o)
@@ -176,7 +211,7 @@ $(OBJ_DIR)/%-cross.o : %.cpp
 # cross-debug
 #####
 $(POD_CROSS_D) : CXX 	= $(CXX_BBB)
-$(POD_CROSS_D) : CFLAGS = $(CFLAGS_DEBUG)
+$(POD_CROSS_D) : CFLAGS = $(CFLAGS_DEBUG) $(CFLAGS_BBB)
 $(POD_CROSS_D) : LD     = $(LD_BBB)
 $(POD_CROSS_D) : mkdir_obj build-$(POD_CROSS_D)
 build-$(POD_CROSS_D) : $(OBJ:%.o=$(OBJ_DIR)/%-cross-debug.o)
@@ -189,7 +224,7 @@ $(OBJ_DIR)/%-cross-debug.o : %.cpp
 # cross-test
 #####
 $(POD_CROSS_T) : CXX 	= $(CXX_BBB)
-$(POD_CROSS_T) : CFLAGS = $(CFLAGS_SIM)
+$(POD_CROSS_T) : CFLAGS = $(CFLAGS_SIM) $(CFLAGS_BBB)
 $(POD_CROSS_T) : LD  	= $(LD_BBB)
 $(POD_CROSS_T) : mkdir_obj build-$(POD_CROSS_T)
 build-$(POD_CROSS_T) : $(OBJ:%.o=$(OBJ_DIR)/%-cross-sim.o)
@@ -214,15 +249,15 @@ ADDR := 128.174.163.125
 push: 
 	$(info  ==============================================)
 	$(info  Ways to push to BBB:)
-	${info  (1) `make push_all`   for all of the following}
-	${info  (2) `make push_sim`   for sim build}
-	${info  (3) `make push_debug` for debug build}
-	${info  (4) `make push_prod`  for optimized build}
+	${info  (1) `make push_all`    for all of the following}
+	${info  (2) `make push_sim`    for sim build}
+	${info  (3) `make push_debug`  for debug build}
+	${info  (4) `make push_prod`   for optimized build}
+	${info  (5) `make push_config` for config file}
 	$(info  ==============================================)
-	
 
 .PHONY: push_all
-push_all: msg push_sim push_debug push_prod
+push_all: msg push_sim push_debug push_prod 
 
 .PHONY: push_sim
 push_sim: msg_s mkdir_obj $(POD_CROSS_T) 
@@ -235,4 +270,8 @@ push_debug: msg_d mkdir_obj $(POD_CROSS_D)
 .PHONY: push_prod
 push_prod: msg_p mkdir_obj $(POD_CROSS)
 	scp $(POD_CROSS) $(BBB)@$(ADDR):~/
+
+.PHONY: push_config
+push_config: 
+	scp defaultConfig.txt $(BBB)@$(ADDR):~/
 
